@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\Api;
-
+use App\Http\Requests\IndexTaskRequest;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
@@ -14,13 +14,18 @@ use Illuminate\Support\Facades\Gate;
 
 class TaskController extends Controller
 {
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(IndexTaskRequest $request): AnonymousResourceCollection
     {
+        $filters = $request->validated();
+
         $tasks = $request->user()
             ->tasks()
             ->with('category')
-            ->latest()
-            ->paginate(15);
+            ->filter($filters)
+            ->orderBy($filters['sort'] ?? 'created_at', $filters['direction'] ?? 'desc')
+            ->orderByDesc('id')
+            ->paginate($filters['per_page'] ?? 15)
+            ->withQueryString();
 
         return TaskResource::collection($tasks);
     }
