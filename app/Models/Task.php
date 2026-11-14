@@ -11,6 +11,10 @@ class Task extends Model
 {
     use HasFactory;
 
+    protected $attributes = [
+        'status' => 'pending',
+    ];
+    
     protected $fillable = ['category_id', 'title', 'description', 'status', 'due_date'];
 
     protected function casts(): array
