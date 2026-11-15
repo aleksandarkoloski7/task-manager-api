@@ -23,7 +23,7 @@ PHP 8.4, Laravel, PostgreSQL 16, Docker Compose, Sanctum, PHPUnit, Laravel Pint,
 Requires Docker.
 
 ```bash
-git clone https://github.com/<USERNAME>/task-manager-api.git
+git clone https://github.com/aleksandarkoloski7/task-manager-api.git
 cd task-manager-api
 cp .env.example .env          # PowerShell: Copy-Item .env.example .env
 docker compose run --rm app composer install
