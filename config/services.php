@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'nager' => [
+    'base_url' => env('NAGER_BASE_URL', 'https://date.nager.at/api/v3'),
+],
+
 ];
