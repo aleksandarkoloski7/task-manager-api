@@ -1,58 +1,99 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Task Manager API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
 
-## About Laravel
+A RESTful task management API built with **Laravel** and **PostgreSQL**: token authentication, per-user authorization, filtering and pagination, an external API integration, automated tests and CI. Runs in Docker.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Features
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- Token authentication with Laravel Sanctum (register, login, logout)
+- Tasks CRUD with categories; every user only sees their own data (Policies)
+- Filtering by status, category and due date; search; sorting; pagination
+- Public holidays endpoint backed by the [Nager.Date](https://date.nager.at) API, with caching, timeout/retry and error handling
+- Validation with Form Requests, JSON output with API Resources
+- Feature tests (PHPUnit), including authorization and the external API (`Http::fake`)
+- OpenAPI documentation generated with Scramble
+- GitHub Actions CI (code style + tests)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Tech stack
 
-## Learning Laravel
+PHP 8.4, Laravel, PostgreSQL 16, Docker Compose, Sanctum, PHPUnit, Laravel Pint, GitHub Actions.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Getting started
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Requires Docker.
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+git clone https://github.com/<USERNAME>/task-manager-api.git
+cd task-manager-api
+cp .env.example .env          # PowerShell: Copy-Item .env.example .env
+docker compose run --rm app composer install
+docker compose run --rm app php artisan key:generate
+docker compose up -d --build
+docker compose exec app php artisan migrate --seed
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+The API runs at `http://localhost:8000`. The seeder creates a demo user: `test@example.com` / `password`.
 
-## Contributing
+Database settings (`DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`) are read from `.env` by both Laravel and Docker Compose.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Running tests
 
-## Code of Conduct
+Tests use a separate PostgreSQL database, so development data is never touched.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "CREATE DATABASE task_manager_testing;"'
+docker compose exec app php artisan test
+```
 
-## Security Vulnerabilities
+## API documentation
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+- Interactive docs: `http://localhost:8000/docs/api`
+- OpenAPI specification: [`openapi.json`](openapi.json) (importable into Postman)
 
-## License
+## Endpoints
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/api/register` | no | Create account, returns token |
+| POST | `/api/login` | no | Log in, returns token (5 attempts/min) |
+| POST | `/api/logout` | yes | Revoke current token |
+| GET | `/api/user` | yes | Current user |
+| GET | `/api/tasks` | yes | List tasks (filters, search, sort, pagination) |
+| POST | `/api/tasks` | yes | Create task |
+| GET | `/api/tasks/{id}` | yes | Show task |
+| PUT/PATCH | `/api/tasks/{id}` | yes | Update task |
+| DELETE | `/api/tasks/{id}` | yes | Delete task |
+| GET | `/api/holidays?country=DE&year=2026` | yes | Public holidays (via Nager.Date) |
+
+Query parameters for `GET /api/tasks`: `status`, `category_id`, `search`, `due_before`, `due_after`, `sort` (`created_at`, `due_date`, `title`, `status`), `direction` (`asc`, `desc`), `per_page` (max 50), `page`.
+
+### Example
+
+```bash
+# log in
+curl -X POST http://localhost:8000/api/login \
+  -H "Accept: application/json" -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"password"}'
+
+# list tasks (replace TOKEN)
+curl "http://localhost:8000/api/tasks?status=pending&sort=due_date&direction=asc" \
+  -H "Accept: application/json" -H "Authorization: Bearer TOKEN"
+```
+
+## Design decisions
+
+- **Form Requests, API Resources and Policies** keep controllers thin: validation, output format and authorization each live in one place.
+- **Authorization:** tasks are always created through `$request->user()->tasks()`, `user_id` is never accepted from input, and a category can only be used by its owner.
+- **Search** is grouped (`user_id = ? AND (title ILIKE ... OR description ILIKE ...)`) so it cannot leak other users' tasks; a test covers this.
+- **Sorting** uses an allow-list and `per_page` is capped.
+- **External API:** isolated in `HolidayService`, configured via `config/services.php`, cached for 24 hours, 5 s timeout with retry. Upstream failures return `502`, unsupported countries `404`. Tests never call the real service.
+- **Tests run on PostgreSQL** (not SQLite) so behaviour such as `ILIKE` matches production.
+
+## How I used AI
+
+<!-- Edit this so it matches how you really worked. -->
+I used an AI assistant as a pair-programming tutor: to plan the project in milestones, scaffold boilerplate, and explain framework concepts. I ran and verified every step myself with automated tests and manual requests, and debugged problems from application logs and error messages (for example a namespace typo and a wrong external API base URL, both traced and fixed by me). I reviewed generated code before committing it, and authorization and validation behaviour is covered by tests.
+
+## CI
+
+GitHub Actions runs code style checks (Laravel Pint) and the test suite against PostgreSQL on every push and pull request. Database credentials for CI are stored as GitHub Actions secrets.
