@@ -2,10 +2,11 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\TaskStatus;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use App\Enums\TaskStatus;
+
 class UpdateTaskRequest extends FormRequest
 {
     /**

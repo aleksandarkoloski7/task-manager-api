@@ -1,9 +1,10 @@
 <?php
-use App\Http\Controllers\Api\HolidayController;
+
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\HolidayController;
+use App\Http\Controllers\Api\TaskController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\TaskController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');

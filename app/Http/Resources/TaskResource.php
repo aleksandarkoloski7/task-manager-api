@@ -20,7 +20,7 @@ class TaskResource extends JsonResource
             'description' => $this->description,
             'status' => $this->status->value,
             'due_date' => $this->due_date?->toDateString(),
-            'category' => $this->whenLoaded('category', fn() => $this->category
+            'category' => $this->whenLoaded('category', fn () => $this->category
                 ? ['id' => $this->category->id, 'name' => $this->category->name]
                 : null),
             'created_at' => $this->created_at,
